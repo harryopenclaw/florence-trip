@@ -1,452 +1,310 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>✈️ YHZ → Florence Trip — Flight Dashboard</title>
+  <title>Florence Trip — Flight Planner</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            surface: '#1e1e2e',
-            card: '#2a2a3c',
-            border: '#3a3a4c',
-          }
-        }
-      }
-    }
-  </script>
   <style>
-    body { background: #13131f; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    .price-cell { transition: transform 0.1s, box-shadow 0.1s; }
-    .price-cell:hover { transform: scale(1.08); box-shadow: 0 0 12px rgba(255,255,255,0.15); z-index: 10; position: relative; }
-    .grid-container { overflow-x: auto; }
-    .grid-container::-webkit-scrollbar { height: 8px; }
-    .grid-container::-webkit-scrollbar-track { background: #1e1e2e; border-radius: 4px; }
-    .grid-container::-webkit-scrollbar-thumb { background: #4a4a5c; border-radius: 4px; }
-    [data-tooltip] { position: relative; }
-    [data-tooltip]:hover::after {
-      content: attr(data-tooltip);
-      position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
-      background: #1a1a2e; color: #fff; padding: 4px 10px; border-radius: 6px;
-      font-size: 12px; white-space: nowrap; z-index: 20; border: 1px solid #3a3a4c;
-      pointer-events: none;
+    body { background: #0f0f1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .card {
+      background: #1e1e2e;
+      border: 1px solid #2a2a3c;
+      border-radius: 12px;
+      padding: 20px 24px;
     }
-    .airline-badge {
+    .tag {
       display: inline-block;
       font-size: 10px;
-      padding: 1px 6px;
-      border-radius: 4px;
-      background: rgba(99, 102, 241, 0.2);
-      color: #a5b4fc;
-      margin-top: 2px;
-      white-space: nowrap;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
-    .route-label-eco {
-      background: rgba(59, 130, 246, 0.15);
-      border-left: 3px solid rgba(59, 130, 246, 0.6);
-      padding-left: 6px;
+    .tag-westjet  { background: rgba(37,99,235,0.2); color: #93c5fd; }
+    .tag-connect  { background: rgba(245,158,11,0.2); color: #fcd34d; }
+    .tag-return   { background: rgba(52,211,153,0.15); color: #6ee7b7; }
+    .tag-warn     { background: rgba(239,68,68,0.15); color: #fca5a5; }
+    .route-arrow  { color: #6366f1; font-size: 18px; margin: 0 8px; }
+    .price-badge  {
+      background: #12121f;
+      border: 1px solid #2a2a3c;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
     }
-    .route-label-biz {
-      background: rgba(234, 179, 8, 0.12);
-      border-left: 3px solid rgba(234, 179, 8, 0.6);
-      padding-left: 6px;
+    .price-num { font-size: 22px; font-weight: 700; color: #a5b4fc; }
+    .price-label { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #4b5563;
+      margin-bottom: 8px;
+      margin-top: 32px;
     }
-    .toggle-active {
-      background: rgba(99, 102, 241, 0.8) !important;
-      color: white !important;
+    .flight-detail {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #2a2a3c;
+      font-size: 13px;
+    }
+    .flight-detail:last-child { border-bottom: none; }
+    .btn {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.15s;
+      margin-top: 12px;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-blue   { background: #3b82f6; color: white; }
+    .btn-indigo { background: #6366f1; color: white; }
+    .btn-green  { background: #059669; color: white; }
+    .note {
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #fcd34d;
+      margin-top: 10px;
+    }
+    .leg-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #6366f1;
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      flex-shrink: 0;
     }
   </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
+<body class="min-h-screen p-6 md:p-12">
 
-  <header class="max-w-7xl mx-auto mb-6">
-    <h1 class="text-3xl md:text-4xl font-bold text-white">&#9992; YHZ → Florence Trip</h1>
-    <p class="text-gray-400 mt-1">Halifax to Florence &middot; May 12–20, 2026 &middot; Prices in CAD &middot; <span class="text-gray-500">2 passengers</span></p>
-    <div class="flex flex-wrap items-center gap-3 mt-3">
-      <span class="text-sm text-yellow-400/80 bg-yellow-400/10 inline-block px-3 py-1 rounded-md">
-        &#128204; Prices shown per person — multiply by 2 for total.
-      </span>
-      <button id="toggleFor2" onclick="toggleFor2()" class="text-sm px-4 py-1.5 rounded-md border border-indigo-500/50 text-indigo-300 bg-[#1e1e2e] hover:bg-indigo-600/20 transition-colors font-medium">
-        Show Total for 2 People
-      </button>
+  <header class="max-w-3xl mx-auto mb-10">
+    <a href="/kanban/hub.html" class="text-xs text-indigo-400 hover:text-indigo-300 mb-4 inline-block">← Back to Hub</a>
+    <div class="flex items-center gap-3 mb-1">
+      <span class="text-3xl">🇮🇹</span>
+      <h1 class="text-3xl md:text-4xl font-bold text-white">Florence Trip — Flight Planner</h1>
     </div>
+    <p class="text-gray-500 text-sm">1 passenger outbound · 2 passengers return · Prices researched Mar 29, 2026</p>
   </header>
 
-  <!-- Frankfurt Red-Eye Strategy Info Box -->
-  <div class="max-w-7xl mx-auto mb-6">
-    <div class="bg-[#1e1e2e] rounded-xl border border-amber-500/30 p-4">
-      <div class="flex items-start gap-3">
-        <div class="text-2xl mt-0.5">🌙</div>
-        <div>
-          <h2 class="text-base font-bold text-amber-300 mb-1">Frankfurt Red-Eye Strategy</h2>
-          <p class="text-sm text-gray-300 mb-2">
-            Take the overnight <strong class="text-white">YHZ → FRA red-eye</strong> — it departs Halifax late evening and arrives Frankfurt the next morning. Spend the day exploring Frankfurt, then hop on a short <strong class="text-white">FRA → FLR next-day flight</strong> to reach Florence refreshed. This two-leg approach often beats direct YHZ→FLR routing on both price and comfort.
-          </p>
-          <p class="text-xs text-gray-400">
-            💡 Add the two rows together for your total per-person cost: <em>YHZ→FRA (Red-Eye)</em> + <em>FRA→FLR (Next Day)</em>
-          </p>
-        </div>
+  <main class="max-w-3xl mx-auto space-y-6">
+
+    <!-- Trip Overview -->
+    <div class="card">
+      <div class="flex flex-wrap gap-3 items-center justify-between mb-4">
+        <h2 class="text-white font-bold text-lg">Trip Overview</h2>
+        <span class="text-gray-500 text-sm">May 15/16 → Florence → ~Jun 2 return</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-sm text-gray-300">
+        <span class="font-semibold text-white">YHZ</span>
+        <span class="route-arrow">→</span>
+        <span class="font-semibold text-white">DUB</span>
+        <span class="route-arrow">→</span>
+        <span class="font-semibold text-white">FLR</span>
+        <span class="text-gray-600 mx-2">···</span>
+        <span class="font-semibold text-white">CDG</span>
+        <span class="route-arrow">→</span>
+        <span class="font-semibold text-white">YHZ</span>
       </div>
     </div>
-  </div>
 
-  <!-- Route filters -->
-  <div class="max-w-7xl mx-auto mb-4">
-    <details class="bg-[#1e1e2e] rounded-lg border border-[#3a3a4c] p-3" open>
-      <summary class="cursor-pointer text-sm font-semibold text-gray-300 select-none">Filter Routes</summary>
-      <div id="filters" class="flex flex-wrap gap-3 mt-3"></div>
-    </details>
-  </div>
-
-  <!-- Summary cards -->
-  <div id="summary-cards" class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"></div>
-
-  <!-- Heatmap grid -->
-  <div class="max-w-7xl mx-auto bg-[#1e1e2e] rounded-xl border border-[#3a3a4c] p-4 mb-6">
-    <h2 class="text-lg font-semibold text-white mb-1">Price Calendar</h2>
-    <p class="text-xs text-gray-500 mb-3" id="heatmap-subtitle">Per person · green = cheapest, red = most expensive</p>
-    <div class="grid-container">
-      <table id="heatmap" class="w-full text-xs md:text-sm"></table>
-    </div>
-  </div>
-
-  <!-- Bar chart -->
-  <div class="max-w-7xl mx-auto bg-[#1e1e2e] rounded-xl border border-[#3a3a4c] p-4 mb-8">
-    <h2 class="text-lg font-semibold text-white mb-1">Cheapest Price by Route</h2>
-    <p class="text-xs text-gray-500 mb-3" id="chart-subtitle">Per person across all dates</p>
-    <div class="relative" style="max-height:380px">
-      <canvas id="barChart"></canvas>
-    </div>
-  </div>
-
-  <!-- Google Flights links -->
-  <div class="max-w-7xl mx-auto mb-8">
-    <h2 class="text-base font-semibold text-white mb-3">&#128269; Search on Google Flights</h2>
-    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-      <a href="https://www.google.com/travel/flights?q=flights+from+YHZ+to+FLR+on+2026-05-16&curr=CAD" target="_blank" rel="noopener" class="bg-[#1e1e2e] border border-[#3a3a4c] rounded-lg p-3 hover:border-blue-500/50 transition-colors">
-        <div class="text-xs text-blue-400 font-semibold mb-1">✈ YHZ → FLR</div>
-        <div class="text-xs text-gray-400">Economy · May 16</div>
-      </a>
-      <a href="https://www.google.com/travel/flights?q=flights+from+YHZ+to+FLR+on+2026-05-16+business+class&curr=CAD" target="_blank" rel="noopener" class="bg-[#1e1e2e] border border-[#3a3a4c] rounded-lg p-3 hover:border-yellow-500/50 transition-colors">
-        <div class="text-xs text-yellow-400 font-semibold mb-1">✈ YHZ → FLR</div>
-        <div class="text-xs text-gray-400">Business · May 16</div>
-      </a>
-      <a href="https://www.google.com/travel/flights?q=flights+from+YHZ+to+FRA+on+2026-05-16&curr=CAD" target="_blank" rel="noopener" class="bg-[#1e1e2e] border border-[#3a3a4c] rounded-lg p-3 hover:border-blue-500/50 transition-colors">
-        <div class="text-xs text-blue-400 font-semibold mb-1">✈ YHZ → FRA</div>
-        <div class="text-xs text-gray-400">Economy · May 16</div>
-      </a>
-      <a href="https://www.google.com/travel/flights?q=flights+from+YHZ+to+FRA+on+2026-05-16+business+class&curr=CAD" target="_blank" rel="noopener" class="bg-[#1e1e2e] border border-[#3a3a4c] rounded-lg p-3 hover:border-yellow-500/50 transition-colors">
-        <div class="text-xs text-yellow-400 font-semibold mb-1">✈ YHZ → FRA</div>
-        <div class="text-xs text-gray-400">Business · May 16</div>
-      </a>
-      <a href="https://www.google.com/travel/flights?q=flights+from+FRA+to+FLR+on+2026-05-17&curr=CAD" target="_blank" rel="noopener" class="bg-[#1e1e2e] border border-[#3a3a4c] rounded-lg p-3 hover:border-blue-500/50 transition-colors">
-        <div class="text-xs text-blue-400 font-semibold mb-1">✈ FRA → FLR</div>
-        <div class="text-xs text-gray-400">Economy · May 17</div>
-      </a>
-      <a href="https://www.google.com/travel/flights?q=flights+from+FRA+to+FLR+on+2026-05-17+business+class&curr=CAD" target="_blank" rel="noopener" class="bg-[#1e1e2e] border border-[#3a3a4c] rounded-lg p-3 hover:border-yellow-500/50 transition-colors">
-        <div class="text-xs text-yellow-400 font-semibold mb-1">✈ FRA → FLR</div>
-        <div class="text-xs text-gray-400">Business · May 17</div>
-      </a>
-    </div>
-  </div>
-
-<script>
-const flightData = {
-  routes: [
-    {
-      id: "yhz-flr-eco-lhr",
-      from: "Halifax (YHZ)",
-      to: "Florence (FLR) via London",
-      cabin: "Economy",
-      airline: "Air Canada + British Airways",
-      link: "https://www.google.com/travel/flights?q=flights+from+YHZ+to+FLR+on+2026-05-16&curr=CAD",
-      prices: { "May 12": 1850, "May 13": 1750, "May 14": 1680, "May 15": 1820, "May 16": 1950, "May 17": 1890, "May 18": 1720, "May 19": 1650, "May 20": 1780 }
-    },
-    {
-      id: "yhz-flr-eco-fra",
-      from: "Halifax (YHZ)",
-      to: "Florence (FLR) via Frankfurt",
-      cabin: "Economy",
-      airline: "Air Canada + Lufthansa",
-      link: "https://www.google.com/travel/flights?q=flights+from+YHZ+to+FLR+on+2026-05-16&curr=CAD",
-      prices: { "May 12": 1780, "May 13": 1690, "May 14": 1620, "May 15": 1750, "May 16": 1880, "May 17": 1820, "May 18": 1660, "May 19": 1590, "May 20": 1710 }
-    },
-    {
-      id: "yhz-flr-biz-lhr",
-      from: "Halifax (YHZ)",
-      to: "Florence (FLR) via London",
-      cabin: "Business",
-      airline: "Air Canada + British Airways",
-      link: "https://www.google.com/travel/flights?q=flights+from+YHZ+to+FLR+on+2026-05-16+business+class&curr=CAD",
-      prices: { "May 12": 6200, "May 13": 5800, "May 14": 5600, "May 15": 6400, "May 16": 6800, "May 17": 6500, "May 18": 5700, "May 19": 5400, "May 20": 5900 }
-    },
-    {
-      id: "yhz-flr-biz-fra",
-      from: "Halifax (YHZ)",
-      to: "Florence (FLR) via Frankfurt",
-      cabin: "Business",
-      airline: "Air Canada + Lufthansa",
-      link: "https://www.google.com/travel/flights?q=flights+from+YHZ+to+FLR+on+2026-05-16+business+class&curr=CAD",
-      prices: { "May 12": 5900, "May 13": 5500, "May 14": 5300, "May 15": 6100, "May 16": 6500, "May 17": 6200, "May 18": 5400, "May 19": 5100, "May 20": 5600 }
-    },
-    {
-      id: "yhz-fra-eco",
-      from: "Halifax (YHZ)",
-      to: "Frankfurt (FRA) — Red-Eye",
-      cabin: "Economy",
-      airline: "Air Canada",
-      link: "https://www.google.com/travel/flights?q=flights+from+YHZ+to+FRA+on+2026-05-16&curr=CAD",
-      prices: { "May 12": 1450, "May 13": 1380, "May 14": 1320, "May 15": 1490, "May 16": 1580, "May 17": 1510, "May 18": 1350, "May 19": 1290, "May 20": 1410 }
-    },
-    {
-      id: "yhz-fra-biz",
-      from: "Halifax (YHZ)",
-      to: "Frankfurt (FRA) — Red-Eye",
-      cabin: "Business",
-      airline: "Air Canada",
-      link: "https://www.google.com/travel/flights?q=flights+from+YHZ+to+FRA+on+2026-05-16+business+class&curr=CAD",
-      prices: { "May 12": 4800, "May 13": 4500, "May 14": 4300, "May 15": 5000, "May 16": 5400, "May 17": 5100, "May 18": 4400, "May 19": 4200, "May 20": 4600 }
-    },
-    {
-      id: "fra-flr-eco",
-      from: "Frankfurt (FRA)",
-      to: "Florence (FLR) — Next Day",
-      cabin: "Economy",
-      airline: "Lufthansa",
-      link: "https://www.google.com/travel/flights?q=flights+from+FRA+to+FLR+on+2026-05-17&curr=CAD",
-      prices: { "May 12": 220, "May 13": 195, "May 14": 185, "May 15": 240, "May 16": 265, "May 17": 250, "May 18": 200, "May 19": 185, "May 20": 210 }
-    },
-    {
-      id: "fra-flr-biz",
-      from: "Frankfurt (FRA)",
-      to: "Florence (FLR) — Next Day",
-      cabin: "Business",
-      airline: "Lufthansa",
-      link: "https://www.google.com/travel/flights?q=flights+from+FRA+to+FLR+on+2026-05-17+business+class&curr=CAD",
-      prices: { "May 12": 520, "May 13": 480, "May 14": 460, "May 15": 580, "May 16": 640, "May 17": 610, "May 18": 490, "May 19": 455, "May 20": 500 }
-    }
-  ]
-};
-
-const dates = ["May 12", "May 13", "May 14", "May 15", "May 16", "May 17", "May 18", "May 19", "May 20"];
-let visibleRoutes = new Set(flightData.routes.map(r => r.id));
-let showFor2 = false;
-let chartInstance = null;
-
-function toggleFor2() {
-  showFor2 = !showFor2;
-  const btn = document.getElementById('toggleFor2');
-  if (showFor2) {
-    btn.textContent = 'Show Per Person';
-    btn.classList.add('toggle-active');
-  } else {
-    btn.textContent = 'Show Total for 2 People';
-    btn.classList.remove('toggle-active');
-  }
-  document.getElementById('heatmap-subtitle').textContent = showFor2
-    ? 'Total for 2 people · green = cheapest, red = most expensive'
-    : 'Per person · green = cheapest, red = most expensive';
-  document.getElementById('chart-subtitle').textContent = showFor2
-    ? 'Total for 2 people across all dates'
-    : 'Per person across all dates';
-  render();
-}
-
-function displayPrice(p) {
-  if (p === null) return null;
-  return showFor2 ? p * 2 : p;
-}
-
-function getRouteStats(route) {
-  const entries = Object.entries(route.prices).filter(([, p]) => p !== null);
-  if (!entries.length) return { min: null, max: null, minDate: null };
-  const rawMin = Math.min(...entries.map(([, p]) => p));
-  const rawMax = Math.max(...entries.map(([, p]) => p));
-  const minDate = entries.find(([, p]) => p === rawMin)[0];
-  return {
-    min: showFor2 ? rawMin * 2 : rawMin,
-    max: showFor2 ? rawMax * 2 : rawMax,
-    rawMin,
-    rawMax,
-    minDate
-  };
-}
-
-function priceColor(price, min, max) {
-  if (price === null) return 'bg-gray-700/50 text-gray-500';
-  if (min === max) return 'bg-emerald-600/70 text-white';
-  const ratio = (price - min) / (max - min);
-  if (ratio <= 0.33) return 'bg-emerald-600/70 text-white';
-  if (ratio <= 0.66) return 'bg-yellow-600/70 text-white';
-  return 'bg-red-600/60 text-white';
-}
-
-function cabinClass(cabin) {
-  return cabin === 'Economy' ? 'route-label-eco' : 'route-label-biz';
-}
-
-function cabinIcon(cabin) {
-  return cabin === 'Economy' ? '🔵' : '🟡';
-}
-
-function renderFilters() {
-  const el = document.getElementById('filters');
-  el.innerHTML = flightData.routes.map(r => `
-    <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-      <input type="checkbox" class="rounded bg-gray-700 border-gray-600 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" data-route="${r.id}" ${visibleRoutes.has(r.id) ? 'checked' : ''}>
-      <span>${cabinIcon(r.cabin)} <span class="${r.cabin === 'Economy' ? 'text-blue-300' : 'text-yellow-300'}">${r.cabin}</span> &mdash; ${r.from.split(' ')[0]} &rarr; ${r.to.split(' ').slice(0,2).join(' ')}</span>
-    </label>
-  `).join('');
-  el.querySelectorAll('input').forEach(cb => {
-    cb.addEventListener('change', () => {
-      if (cb.checked) visibleRoutes.add(cb.dataset.route);
-      else visibleRoutes.delete(cb.dataset.route);
-      render();
-    });
-  });
-}
-
-function renderSummaryCards() {
-  const el = document.getElementById('summary-cards');
-  el.innerHTML = flightData.routes.filter(r => visibleRoutes.has(r.id)).map(r => {
-    const { min, minDate } = getRouteStats(r);
-    const isBiz = r.cabin === 'Business';
-    const borderClass = isBiz ? 'hover:border-yellow-500/50' : 'hover:border-blue-500/50';
-    const priceClass = isBiz ? 'text-yellow-400' : 'text-emerald-400';
-    const label = showFor2 ? 'Best price (×2)' : 'Best price';
-    return `
-      <div class="bg-[#2a2a3c] rounded-lg border border-[#3a3a4c] ${borderClass} p-4 transition-colors">
-        <div class="text-xs text-gray-400 mb-0.5">${cabinIcon(r.cabin)} <span class="${isBiz ? 'text-yellow-300' : 'text-blue-300'} font-medium">${r.cabin}</span></div>
-        <div class="text-xs text-gray-400 mb-1 truncate">${r.from.replace(' (YHZ)', '').replace(' (FRA)', '')} → ${r.to.split(' via ')[0].split(' —')[0].replace(' (FLR)', '')}</div>
-        <div class="text-2xl font-bold ${min ? priceClass : 'text-gray-500'}">${min ? '$' + min.toLocaleString() : 'TBD'}</div>
-        <div class="text-xs text-gray-500 mt-1">${minDate ? label + ' · ' + minDate : 'No data'}</div>
-        <div class="airline-badge mt-1">${r.airline}</div>
-        <a href="${r.link}" target="_blank" rel="noopener" class="text-xs text-indigo-400 hover:text-indigo-300 mt-2 inline-block">Google Flights →</a>
-      </div>`;
-  }).join('');
-}
-
-function renderHeatmap() {
-  const table = document.getElementById('heatmap');
-  const visible = flightData.routes.filter(r => visibleRoutes.has(r.id));
-
-  let html = '<thead><tr><th class="sticky left-0 bg-[#1e1e2e] z-10 text-left text-gray-400 font-medium px-2 py-2 min-w-[200px]">Route</th>';
-  dates.forEach(d => {
-    const short = d.replace('May ', '5/');
-    html += `<th class="text-gray-400 font-medium px-1 py-2 text-center whitespace-nowrap">${short}</th>`;
-  });
-  html += '</tr></thead><tbody>';
-
-  visible.forEach(r => {
-    const { rawMin, rawMax } = getRouteStats(r);
-    const isBiz = r.cabin === 'Business';
-    const labelClass = cabinClass(r.cabin);
-    const routeShort = r.from.split(' ')[0] + ' → ' + r.to.split(' ')[0] + (r.to.includes('via') ? ' via ' + r.to.split('via ')[1] : r.to.includes('—') ? ' ' + r.to.split('—')[1].trim().split(' ')[0] : '');
-
-    html += `<tr>
-      <td class="sticky left-0 bg-[#1e1e2e] z-10 px-2 py-2 text-xs font-medium whitespace-nowrap">
-        <div class="${labelClass} rounded py-1 pr-2">
-          <a href="${r.link}" target="_blank" rel="noopener" class="${isBiz ? 'text-yellow-300 hover:text-yellow-200' : 'text-blue-300 hover:text-blue-200'}">${routeShort}</a>
-          <br><span class="airline-badge">${r.airline}</span>
+    <!-- LEG 1 -->
+    <div class="section-label">✈️ Leg 1 — Outbound</div>
+    <div class="card">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="leg-num">1</div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-white font-bold text-base">Halifax (YHZ) → Dublin (DUB)</span>
+            <span class="tag tag-westjet">WestJet · Nonstop</span>
+          </div>
+          <p class="text-gray-500 text-xs mt-1">1 passenger · May 15 or May 16, 2026</p>
         </div>
-      </td>`;
-    dates.forEach(d => {
-      const rawP = r.prices[d];
-      const p = displayPrice(rawP);
-      const color = priceColor(rawP, rawMin, rawMax);
-      const pLabel = showFor2 ? 'Total for 2' : 'Per person';
-      const tooltip = p !== null ? `${pLabel}: $${p.toLocaleString()} CAD on ${d}` : 'No data';
-      const display = p !== null ? '$' + p.toLocaleString() : '—';
-      html += `<td class="px-1 py-1 text-center"><div class="price-cell ${color} rounded-md px-2 py-2 text-xs font-medium cursor-default" data-tooltip="${tooltip}">${display}</div></td>`;
-    });
-    html += '</tr>';
-  });
+      </div>
 
-  html += '</tbody>';
-  table.innerHTML = html;
-}
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div class="price-badge">
+          <div class="price-num">~$554</div>
+          <div class="price-label">CAD · typical low (May)</div>
+        </div>
+        <div class="price-badge">
+          <div class="price-num">~$815</div>
+          <div class="price-label">CAD · typical high (May)</div>
+        </div>
+      </div>
 
-function renderChart() {
-  const visible = flightData.routes.filter(r => visibleRoutes.has(r.id));
-  const labels = visible.map(r => {
-    const from = r.from.split(' ')[0];
-    const toBase = r.to.split(' via ')[0].split(' —')[0].split(' ')[0];
-    const via = r.to.includes('via ') ? ' via ' + r.to.split('via ')[1] : r.to.includes('—') ? ' (' + r.to.split('—')[1].trim().split(' ')[0] + ')' : '';
-    return `${from}→${toBase}${via}\n${r.cabin}`;
-  });
-  const data = visible.map(r => {
-    const { rawMin } = getRouteStats(r);
-    return rawMin ? (showFor2 ? rawMin * 2 : rawMin) : 0;
-  });
-  const colors = visible.map(r => r.cabin === 'Business'
-    ? 'rgba(234, 179, 8, 0.75)'
-    : 'rgba(99, 204, 163, 0.8)'
-  );
-  const borderColors = visible.map(r => r.cabin === 'Business'
-    ? 'rgba(234, 179, 8, 1)'
-    : 'rgba(99, 204, 163, 1)'
-  );
+      <div class="flight-detail">
+        <span class="text-gray-400">Route</span>
+        <span class="text-white">YHZ → DUB, nonstop (~5h 30min)</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Airline</span>
+        <span class="text-white">WestJet (direct service from Halifax)</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Dates to check</span>
+        <span class="text-white">May 15 and May 16</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Passengers</span>
+        <span class="text-white">1</span>
+      </div>
 
-  if (chartInstance) chartInstance.destroy();
-  chartInstance = new Chart(document.getElementById('barChart'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: showFor2 ? 'Cheapest Total for 2 (CAD)' : 'Cheapest Price per Person (CAD)',
-        data,
-        backgroundColor: colors,
-        borderColor: borderColors,
-        borderWidth: 1,
-        borderRadius: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ctx.raw ? `$${ctx.raw.toLocaleString()} CAD` : 'No data'
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: {
-            color: '#9ca3af',
-            font: { size: 10 },
-            maxRotation: 30
-          },
-          grid: { color: '#2a2a3c' }
-        },
-        y: {
-          ticks: {
-            color: '#9ca3af',
-            callback: v => '$' + v.toLocaleString()
-          },
-          grid: { color: '#2a2a3c' },
-          beginAtZero: true
-        }
-      }
-    }
-  });
-}
+      <div class="flex flex-wrap gap-2">
+        <a href="https://www.westjet.com/en-ca/flights/search#/results?origin=YHZ&destination=DUB&departDate=2026-05-15&adults=1&tripType=ONE_WAY" target="_blank" class="btn btn-blue">Search May 15 on WestJet</a>
+        <a href="https://www.westjet.com/en-ca/flights/search#/results?origin=YHZ&destination=DUB&departDate=2026-05-16&adults=1&tripType=ONE_WAY" target="_blank" class="btn btn-indigo">Search May 16 on WestJet</a>
+        <a href="https://www.google.com/travel/flights/search?tfs=CBwQARoeEgoyMDI2LTA1LTE1agcIARIDWUhaegcIARIDRFVC&curr=CAD&gl=CA" target="_blank" class="btn btn-green">Compare on Google Flights</a>
+      </div>
+    </div>
 
-function render() {
-  renderSummaryCards();
-  renderHeatmap();
-  renderChart();
-}
+    <!-- LEG 2 -->
+    <div class="section-label">✈️ Leg 2 — Dublin to Florence</div>
+    <div class="card">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="leg-num">2</div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-white font-bold text-base">Dublin (DUB) → Florence (FLR)</span>
+            <span class="tag tag-connect">1 Stop Required</span>
+          </div>
+          <p class="text-gray-500 text-xs mt-1">1 passenger · May 18, 2026 · Early morning preferred</p>
+        </div>
+      </div>
 
-renderFilters();
-render();
-</script>
+      <div class="note">
+        ⚠️ No direct Dublin → Florence flights exist. Best connections route via Amsterdam (KLM), London (British Airways), or Paris (Air France). Minimum total journey ~4h 30min.
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 my-4">
+        <div class="price-badge">
+          <div class="price-num">~$70</div>
+          <div class="price-label">USD · lowest seen (1-stop)</div>
+        </div>
+        <div class="price-badge">
+          <div class="price-num">~$244</div>
+          <div class="price-label">USD · KLM via Amsterdam</div>
+        </div>
+      </div>
+
+      <div class="flight-detail">
+        <span class="text-gray-400">Best options</span>
+        <span class="text-white">KLM (via AMS) · Air France (via CDG) · BA (via LHR)</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Fastest connection</span>
+        <span class="text-white">~4h 30min total</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Target departure</span>
+        <span class="text-white">Early morning May 18 (arrive Florence by midday)</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Florence airport</span>
+        <span class="text-white">FLR — Peretola (Amerigo Vespucci)</span>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <a href="https://www.google.com/travel/flights/search?tfs=CBwQARoeEgoyMDI2LTA1LTE4agcIARIDRFVCegcIARIDRkxS&curr=USD" target="_blank" class="btn btn-green">Search DUB → FLR on Google Flights</a>
+        <a href="https://www.kayak.ie/flights/DUB-FLR/2026-05-18?sort=bestflight_a" target="_blank" class="btn btn-indigo">Check KAYAK.ie</a>
+      </div>
+    </div>
+
+    <!-- LEG 3 -->
+    <div class="section-label">✈️ Leg 3 — Return</div>
+    <div class="card">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="leg-num">3</div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-white font-bold text-base">Paris (CDG) → Halifax (YHZ)</span>
+            <span class="tag tag-westjet">WestJet · Nonstop</span>
+            <span class="tag tag-return">2 Passengers</span>
+          </div>
+          <p class="text-gray-500 text-xs mt-1">2 passengers · ~June 2, 2026</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="price-badge">
+          <div class="price-num">$315</div>
+          <div class="price-label">USD · per person (1-way low)</div>
+        </div>
+        <div class="price-badge">
+          <div class="price-num">~$630</div>
+          <div class="price-label">USD · 2 passengers est.</div>
+        </div>
+        <div class="price-badge">
+          <div class="price-num">$972</div>
+          <div class="price-label">USD · Jun 2 roundtrip seen</div>
+        </div>
+      </div>
+
+      <div class="flight-detail">
+        <span class="text-gray-400">Route</span>
+        <span class="text-white">CDG → YHZ, nonstop (WestJet)</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Airline</span>
+        <span class="text-white">WestJet (direct Paris–Halifax service)</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Date</span>
+        <span class="text-white">~June 2, 2026</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Passengers</span>
+        <span class="text-white">2</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Note</span>
+        <span class="text-gray-400">Prices in USD from Travelocity — expect ~30% higher in CAD</span>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <a href="https://www.westjet.com/en-ca/flights/search#/results?origin=CDG&destination=YHZ&departDate=2026-06-02&adults=2&tripType=ONE_WAY" target="_blank" class="btn btn-blue">Search Jun 2 on WestJet</a>
+        <a href="https://www.google.com/travel/flights/search?tfs=CBwQARoeEgoyMDI2LTA2LTAyagcIARIDQ0RHegcIARIDWUha&curr=CAD&gl=CA" target="_blank" class="btn btn-green">Compare on Google Flights</a>
+        <a href="https://www.travelocity.com/lp/flight-routes/westjet-from-roissy-charles-de-gaulle-to-stanfield-intl/ws/cdg/yhz" target="_blank" class="btn btn-indigo">Travelocity WestJet CDG→YHZ</a>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="section-label">💰 Estimated Total</div>
+    <div class="card">
+      <div class="flight-detail">
+        <span class="text-gray-400">Leg 1 · YHZ → DUB (1 pax)</span>
+        <span class="text-white">~$554–$815 CAD</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Leg 2 · DUB → FLR via hub (1 pax)</span>
+        <span class="text-white">~$70–$244 USD</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-400">Leg 3 · CDG → YHZ (2 pax)</span>
+        <span class="text-white">~$630+ USD</span>
+      </div>
+      <div class="flight-detail">
+        <span class="text-gray-500 text-xs">All prices approximate · verify before booking · researched Mar 29, 2026</span>
+        <span></span>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="max-w-3xl mx-auto mt-16 pb-8 text-center text-gray-600 text-xs">
+    Florence Trip Planner · Researched Mar 29, 2026 · Prices subject to change
+  </footer>
+
 </body>
 </html>
